@@ -115,11 +115,37 @@ static void lmic_hal_interrupt_init() {
 static bool dio_states[NUM_DIO_INTERRUPT] = {0};
 void lmic_hal_pollPendingIRQs_helper() {
 #ifdef ARDUINO_LMIC_LIBRARY_DISABLE_DIO_PIN
-    dio_states[0] = !dio_states[0];
-    if (dio_states[0] && interrupt_time[0] == 0) {
-        ostime_t const now = os_getTime();
-        interrupt_time[0] = now ? now : 1;
+#if (defined CFG_sx1261_radio) || (defined CFG_sx1262_radio)
+    u1_t nop = 0x00;
+    u1_t buf[2];
+    lmic_hal_spi_read_sx126x(0x12, &nop, 1, buf, 2);
+    u2_t irqStatus = (buf[0] << 8) | buf[1];
+
+    if (irqStatus > 0)
+    {
+        dio_states[0] = !dio_states[0];
+        if (dio_states[0] && interrupt_time[0] == 0)
+        {
+            ostime_t const now = os_getTime();
+            interrupt_time[0] = now ? now : 1;
+        }
     }
+#elif defined CFG_sx1276_radio
+    u1_t irqStatus = 0;
+    lmic_hal_spi_read(0x12, &irqStatus, 1);
+
+    if (irqStatus > 0)
+    {
+        dio_states[0] = !dio_states[0];
+        if (dio_states[0] && interrupt_time[0] == 0)
+        {
+            ostime_t const now = os_getTime();
+            interrupt_time[0] = now ? now : 1;
+        }
+    }
+#else
+#error "unknown macro definition. please select the correct macro definition."
+#endif
 #else
     uint8_t i;
     for (i = 0; i < NUM_DIO_INTERRUPT; ++i) {
