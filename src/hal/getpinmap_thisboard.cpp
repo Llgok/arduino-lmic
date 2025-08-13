@@ -71,6 +71,8 @@ const HalPinmap_t *GetPinmap_ThisBoard(void)
         return GetPinmap_heltec_lora32_v3();
 #elif defined(ARDUINO_TTGO_T_BEAM_S3)
         return GetPinmap_ttgo_tbeam_s3();
+#elif defined(ARDUINO_T_CONNECT_PRO)
+        return GetPinmap_T_Connect_Pro();
 #else
         #pragma message("Board not supported -- use an explicit pinmap")
         return nullptr;
