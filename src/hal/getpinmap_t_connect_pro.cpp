@@ -25,7 +25,7 @@ namespace Arduino_LMIC {
             PIN_NSS = 14,
             PIN_NRESET = 42,
             PIN_BUSY = 38,
-#ifdef ARDUINO_LMIC_LIBRARY_DISABLE_INT_PIN
+#ifdef ARDUINO_LMIC_LIBRARY_DISABLE_DIO_PIN
             PIN_DIO1 = HalPinmap_t::UNUSED_PIN,
 #else
             PIN_DIO1 = 45,
