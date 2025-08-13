@@ -533,7 +533,7 @@ bool lmic_hal_init_with_pinmap(const HalPinmap_t *pPinmap)
     // configure radio I/O and interrupt handler
     lmic_hal_io_init();
     // configure radio SPI
-    lmic_hal_spi_init();
+    // lmic_hal_spi_init();
     // configure timer and interrupt handler
     lmic_hal_time_init();
 #if defined(LMIC_PRINTF_TO)
