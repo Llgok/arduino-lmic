@@ -30,12 +30,15 @@ static lmic_hal_failure_handler_t* custom_hal_failure_handler = NULL;
 static void lmic_hal_interrupt_init(); // Fwd declaration
 
 static void lmic_hal_io_init () {
+#ifdef ARDUINO_LMIC_LIBRARY_DISABLE_DIO_PIN
+#else
     // NSS and DIO0 are required, DIO1 is required for LoRa, DIO2 for FSK
     ASSERT(plmic_pins->nss != LMIC_UNUSED_PIN);
     ASSERT(plmic_pins->dio[0] != LMIC_UNUSED_PIN);
     // SX126x family can operate with a single DIO
 #if (defined(CFG_sx1276_radio) || defined(CFG_sx1272_radio))
     ASSERT(plmic_pins->dio[1] != LMIC_UNUSED_PIN || plmic_pins->dio[2] != LMIC_UNUSED_PIN);
+#endif
 #endif
 
 //    Serial.print("nss: "); Serial.println(plmic_pins->nss);
@@ -97,16 +100,27 @@ static ostime_t interrupt_time[NUM_DIO_INTERRUPT] = {0};
 
 #if !defined(LMIC_USE_INTERRUPTS)
 static void lmic_hal_interrupt_init() {
+#ifdef ARDUINO_LMIC_LIBRARY_DISABLE_DIO_PIN
+#else
     pinMode(plmic_pins->dio[0], INPUT);
     if (plmic_pins->dio[1] != LMIC_UNUSED_PIN)
         pinMode(plmic_pins->dio[1], INPUT);
     if (plmic_pins->dio[2] != LMIC_UNUSED_PIN)
         pinMode(plmic_pins->dio[2], INPUT);
     static_assert(NUM_DIO_INTERRUPT == 3, "Number of interrupt lines must be set to 3");
+#endif
+
 }
 
 static bool dio_states[NUM_DIO_INTERRUPT] = {0};
 void lmic_hal_pollPendingIRQs_helper() {
+#ifdef ARDUINO_LMIC_LIBRARY_DISABLE_DIO_PIN
+    dio_states[0] = !dio_states[0];
+    if (dio_states[0] && interrupt_time[0] == 0) {
+        ostime_t const now = os_getTime();
+        interrupt_time[0] = now ? now : 1;
+    }
+#else
     uint8_t i;
     for (i = 0; i < NUM_DIO_INTERRUPT; ++i) {
         if (plmic_pins->dio[i] == LMIC_UNUSED_PIN)
@@ -120,6 +134,7 @@ void lmic_hal_pollPendingIRQs_helper() {
             }
         }
     }
+#endif
 }
 
 #else
@@ -160,6 +175,14 @@ static void lmic_hal_interrupt_init() {
 #endif // LMIC_USE_INTERRUPTS
 
 void lmic_hal_processPendingIRQs() {
+#ifdef ARDUINO_LMIC_LIBRARY_DISABLE_DIO_PIN
+    ostime_t iTime;
+    iTime = interrupt_time[0];
+    if (iTime) {
+        interrupt_time[0] = 0;
+        radio_irq_handler_v2(0, iTime);
+    }
+#else
     uint8_t i;
     for (i = 0; i < NUM_DIO_INTERRUPT; ++i) {
         ostime_t iTime;
@@ -182,6 +205,7 @@ void lmic_hal_processPendingIRQs() {
             radio_irq_handler_v2(i, iTime);
         }
     }
+#endif
 }
 
 // -----------------------------------------------------------------------------
